@@ -7,10 +7,12 @@ import { AIAdapterFactory } from './ai-adapter.factory';
 import { AIService } from './ai.service';
 import { AIConfigService } from './ai-config.service';
 import { AIConfigController } from './ai-config.controller';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([AIConfiguration, WordExplanation, Word]),
+    UsersModule,
   ],
   controllers: [AIConfigController],
   providers: [AIAdapterFactory, AIService, AIConfigService],

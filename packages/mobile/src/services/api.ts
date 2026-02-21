@@ -1,7 +1,36 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = __DEV__ ? 'http://10.0.2.2:3000/api/v1' : 'https://api.wordpicmemo.com/api/v1';
+const DEFAULT_API_URL = __DEV__ ? 'http://10.0.2.2:3000/api/v1' : 'https://api.wordpicmemo.com/api/v1';
+const API_URL_STORAGE_KEY = 'custom_api_base_url';
+
+// Get API URL - from storage or default
+export async function getApiBaseUrl(): Promise<string> {
+  try {
+    const customUrl = await AsyncStorage.getItem(API_URL_STORAGE_KEY);
+    return customUrl || DEFAULT_API_URL;
+  } catch {
+    return DEFAULT_API_URL;
+  }
+}
+
+// Set custom API URL
+export async function setApiBaseUrl(url: string): Promise<void> {
+  try {
+    if (url.trim()) {
+      await AsyncStorage.setItem(API_URL_STORAGE_KEY, url.trim());
+    } else {
+      await AsyncStorage.removeItem(API_URL_STORAGE_KEY);
+    }
+  } catch (error) {
+    console.error('Failed to save API URL:', error);
+  }
+}
+
+// Get default API URL for display
+export function getDefaultApiBaseUrl(): string {
+  return DEFAULT_API_URL;
+}
 
 class ApiClient {
   private client: AxiosInstance;
@@ -14,7 +43,7 @@ class ApiClient {
 
   constructor() {
     this.client = axios.create({
-      baseURL: API_BASE_URL,
+      baseURL: DEFAULT_API_URL,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
@@ -22,6 +51,22 @@ class ApiClient {
     });
 
     this.setupInterceptors();
+    this.initBaseUrl();
+  }
+
+  private async initBaseUrl() {
+    const baseUrl = await getApiBaseUrl();
+    this.client.defaults.baseURL = baseUrl;
+  }
+
+  // Update base URL (call this after setting custom URL)
+  async updateBaseUrl() {
+    const baseUrl = await getApiBaseUrl();
+    this.client.defaults.baseURL = baseUrl;
+  }
+
+  private getCurrentBaseUrl(): string {
+    return this.client.defaults.baseURL || DEFAULT_API_URL;
   }
 
   private setupInterceptors() {
@@ -66,7 +111,7 @@ class ApiClient {
             const refreshToken = await AsyncStorage.getItem('refreshToken');
             if (!refreshToken) throw new Error('No refresh token');
 
-            const { data } = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+            const { data } = await axios.post(`${this.getCurrentBaseUrl()}/auth/refresh`, {
               refreshToken,
             });
 
@@ -108,3 +153,5 @@ export const apiClient = apiClientInstance.instance;
 export const setOnAuthLost = (callback: () => void) => {
   apiClientInstance.onAuthLost = callback;
 };
+// Export update function for external use
+export const updateApiClientBaseUrl = () => apiClientInstance.updateBaseUrl();

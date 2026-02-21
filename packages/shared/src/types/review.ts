@@ -6,6 +6,8 @@ export type ReviewStage = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export type ReviewStatus = 'pending' | 'due' | 'completed' | 'overdue' | 'skipped';
 
+export type ReviewListStatus = 'unreviewed' | 'reviewed';
+
 export interface ReviewSchedule {
   id: string;
   wordId: string;
@@ -23,6 +25,11 @@ export interface ReviewSchedule {
 export interface CompleteReviewDto {
   remembered: boolean;
   confidence: number; // 1-5
+}
+
+export interface ReviewListQuery {
+  status?: ReviewListStatus;
+  date?: string;
 }
 
 export interface ReviewSummary {

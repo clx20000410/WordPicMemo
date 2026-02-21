@@ -1,5 +1,11 @@
 import { apiClient } from './api';
-import { DueReviewItem, ReviewSummary, CompleteReviewDto, ReviewSchedule } from '@wordpicmemo/shared';
+import {
+  DueReviewItem,
+  ReviewSummary,
+  CompleteReviewDto,
+  ReviewSchedule,
+  ReviewListStatus,
+} from '@wordpicmemo/shared';
 
 export interface PendingScheduleItem {
   id: string;
@@ -7,6 +13,7 @@ export interface PendingScheduleItem {
   stage: number;
   scheduledAt: string;
   status: string;
+  word?: string | null;
 }
 
 export const reviewService = {
@@ -27,6 +34,16 @@ export const reviewService = {
 
   getPendingSchedules: async (): Promise<PendingScheduleItem[]> => {
     const { data } = await apiClient.get('/reviews/pending-schedules');
+    return data;
+  },
+
+  getReviewSchedules: async (
+    status: ReviewListStatus,
+    date?: string,
+  ): Promise<DueReviewItem[]> => {
+    const { data } = await apiClient.get('/reviews/schedules', {
+      params: { status, date },
+    });
     return data;
   },
 };

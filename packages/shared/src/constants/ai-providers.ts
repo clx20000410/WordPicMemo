@@ -50,13 +50,13 @@ export const AI_PROVIDERS: Record<AIProvider, AIProviderInfo> = {
   doubao: {
     provider: 'doubao',
     name: '豆包 (Doubao)',
-    supportedPurposes: ['text'],
+    supportedPurposes: ['text', 'image'],
     defaultEndpoint: 'https://ark.cn-beijing.volces.com/api/v3',
     defaultModels: {
       text: 'doubao-pro-32k',
-      image: '',
+      image: 'doubao-seedream-4-0-250828',
     },
-    description: '字节跳动豆包大模型',
+    description: '字节跳动豆包大模型 (文本 + Seedream 图片生成)',
   },
   custom: {
     provider: 'custom',
@@ -92,4 +92,5 @@ export const TEXT_RESPONSE_FORMATS: ResponseFormatInfo[] = [
 
 export const IMAGE_RESPONSE_FORMATS: ResponseFormatInfo[] = [
   { value: 'dall-e', label: 'DALL-E', description: 'OpenAI Image API' },
+  { value: 'doubao', label: '豆包 Seedream', description: 'Volcengine Ark Image API' },
 ];

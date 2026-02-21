@@ -9,6 +9,8 @@ import {
   ImageStatus,
 } from '../words/word-explanation.entity';
 import { Word } from '../words/word.entity';
+import { UsersService } from '../users/users.service';
+import { DEFAULT_IMAGE_PROMPT_TEMPLATE } from '@wordpicmemo/shared';
 
 @Injectable()
 export class AIService {
@@ -17,6 +19,7 @@ export class AIService {
   constructor(
     private readonly aiConfigService: AIConfigService,
     private readonly adapterFactory: AIAdapterFactory,
+    private readonly usersService: UsersService,
     @InjectRepository(WordExplanation)
     private readonly wordExplanationRepo: Repository<WordExplanation>,
     @InjectRepository(Word)
@@ -179,9 +182,16 @@ export class AIService {
         modelName: config.modelName,
       });
 
-      // 5. Call generateImage with imagePrompt
+      // 5. Build final prompt: combine user template + word + scene
+      const word = await this.wordRepo.findOne({ where: { id: wordId } });
+      const settings = await this.usersService.getSettings(userId);
+      const template =
+        settings.imagePromptTemplate || DEFAULT_IMAGE_PROMPT_TEMPLATE;
+      const finalPrompt = `${template}\n\nWord: ${word?.word ?? ''}\nScene: ${explanation.imagePrompt}`;
+
+      // 6. Call generateImage with combined prompt
       const result = await adapter.generateImage({
-        prompt: explanation.imagePrompt,
+        prompt: finalPrompt,
       });
 
       // 6. Update imageUrl and imageStatus to 'completed'

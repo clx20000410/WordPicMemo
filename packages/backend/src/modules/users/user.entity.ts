@@ -26,6 +26,14 @@ export class User {
   @Column({ type: 'varchar', default: 'UTC' })
   timezone: string;
 
+  @Column({
+    name: 'image_prompt_template',
+    type: 'text',
+    nullable: true,
+    default: null,
+  })
+  imagePromptTemplate: string | null;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 

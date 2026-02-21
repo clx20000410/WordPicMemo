@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Word, PaginatedResponse } from '@wordpicmemo/shared';
-import { wordService, notificationService } from '../services';
+import { wordService, notificationService, reviewService } from '../services';
 
 interface WordState {
   words: Word[];
@@ -15,6 +15,7 @@ interface WordState {
   fetchWords: (page?: number, search?: string, date?: string) => Promise<void>;
   fetchWordById: (id: string) => Promise<void>;
   createWord: (word: string, language?: string) => Promise<Word>;
+  createNote: (title: string, content: string, imageDataUrl?: string) => Promise<Word>;
   deleteWord: (id: string) => Promise<void>;
   regenerateExplanation: (id: string) => Promise<void>;
   regenerateImage: (id: string) => Promise<void>;
@@ -71,13 +72,28 @@ export const useWordStore = create<WordState>((set, get) => ({
         total: state.total + 1,
         isCreating: false,
       }));
-      // Schedule Ebbinghaus review notifications (fire-and-forget)
-      notificationService
-        .scheduleReviewNotifications(newWord.id, newWord.word, newWord.createdAt)
-        .catch((err) => console.warn('Failed to schedule notifications:', err));
+      // Sync from backend schedule source and wait for local triggers to be persisted.
+      await syncReviewNotifications();
       return newWord;
     } catch (error: any) {
       set({ error: error.response?.data?.message || 'Failed to create word', isCreating: false });
+      throw error;
+    }
+  },
+
+  createNote: async (title, content, imageDataUrl) => {
+    set({ isCreating: true, error: null });
+    try {
+      const newNote = await wordService.createNote({ title, content, imageDataUrl });
+      set((state) => ({
+        words: [newNote, ...state.words],
+        total: state.total + 1,
+        isCreating: false,
+      }));
+      await syncReviewNotifications();
+      return newNote;
+    } catch (error: any) {
+      set({ error: error.response?.data?.message || 'Failed to create note', isCreating: false });
       throw error;
     }
   },
@@ -123,3 +139,12 @@ export const useWordStore = create<WordState>((set, get) => ({
   clearCurrentWord: () => set({ currentWord: null }),
   clearError: () => set({ error: null }),
 }));
+
+async function syncReviewNotifications(): Promise<void> {
+  try {
+    const schedules = await reviewService.getPendingSchedules();
+    await notificationService.syncPendingReviewNotifications(schedules);
+  } catch (err) {
+    console.warn('Failed to sync scheduled notifications after create:', err);
+  }
+}

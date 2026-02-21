@@ -2,7 +2,7 @@
 // Word & Explanation Types
 // ==========================================
 
-export type WordLanguage = 'en' | 'ja' | 'ko' | 'fr' | 'de' | 'es';
+export type WordLanguage = 'en' | 'ja' | 'ko' | 'fr' | 'de' | 'es' | 'note';
 
 export type ImageStatus = 'pending' | 'generating' | 'completed' | 'failed';
 
@@ -49,6 +49,12 @@ export interface Word {
 export interface CreateWordDto {
   word: string;
   language?: WordLanguage;
+}
+
+export interface CreateNoteDto {
+  title: string;
+  content: string;
+  imageDataUrl?: string;
 }
 
 export interface WordListQuery {

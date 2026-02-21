@@ -15,6 +15,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagg
 
 import { WordsService } from './words.service';
 import { CreateWordDto } from './dto/create-word.dto';
+import { CreateNoteDto } from './dto/create-note.dto';
 import { WordQueryDto } from './dto/word-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser, CurrentUserPayload } from '../../common/decorators/current-user.decorator';
@@ -34,6 +35,16 @@ export class WordsController {
     @Body() dto: CreateWordDto,
   ) {
     return this.wordsService.createWord(user.userId, dto);
+  }
+
+  @Post('notes')
+  @ApiOperation({ summary: 'Create a rich-text note and schedule Ebbinghaus reviews' })
+  @ApiResponse({ status: 201, description: 'Note created successfully' })
+  async createNote(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: CreateNoteDto,
+  ) {
+    return this.wordsService.createNote(user.userId, dto);
   }
 
   @Get()

@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   UseGuards,
@@ -57,5 +58,14 @@ export class AIConfigController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.aiConfigService.testConfig(id, user.userId);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete an AI configuration' })
+  async deleteConfig(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.aiConfigService.deleteConfig(id, user.userId);
   }
 }

@@ -1,9 +1,20 @@
 import { apiClient } from './api';
-import { Word, CreateWordDto, WordListQuery, PaginatedResponse } from '@wordpicmemo/shared';
+import {
+  Word,
+  CreateWordDto,
+  CreateNoteDto,
+  WordListQuery,
+  PaginatedResponse,
+} from '@wordpicmemo/shared';
 
 export const wordService = {
   createWord: async (dto: CreateWordDto): Promise<Word> => {
     const { data } = await apiClient.post('/words', dto);
+    return data;
+  },
+
+  createNote: async (dto: CreateNoteDto): Promise<Word> => {
+    const { data } = await apiClient.post('/words/notes', dto);
     return data;
   },
 

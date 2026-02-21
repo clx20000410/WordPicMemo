@@ -28,6 +28,7 @@ export enum ResponseFormat {
   CLAUDE = 'claude',
   GEMINI = 'gemini',
   DALL_E = 'dall-e',
+  DOUBAO = 'doubao',
 }
 
 @Entity('ai_configurations')

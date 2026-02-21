@@ -12,6 +12,7 @@ import { WordExplanation, ExplanationStatus, ImageStatus } from './word-explanat
 import { ReviewService } from '../review/review.service';
 import { AIService } from '../ai/ai.service';
 import { CreateWordDto } from './dto/create-word.dto';
+import { CreateNoteDto } from './dto/create-note.dto';
 import { WordQueryDto } from './dto/word-query.dto';
 
 @Injectable()
@@ -56,6 +57,40 @@ export class WordsService {
     });
 
     // 5. Return word with explanation
+    savedWord.explanation = savedExplanation;
+    return savedWord;
+  }
+
+  async createNote(userId: string, dto: CreateNoteDto): Promise<Word> {
+    const title = dto.title.trim();
+    const richContent = dto.content.trim();
+    const preview = this.getPreviewText(richContent, 220);
+    const normalizedImageDataUrl = dto.imageDataUrl?.trim() || null;
+
+    const noteWord = this.wordRepository.create({
+      userId,
+      word: title,
+      language: 'note',
+    });
+    const savedWord = await this.wordRepository.save(noteWord);
+
+    const explanation = this.wordExplanationRepository.create({
+      wordId: savedWord.id,
+      pronunciation: null,
+      wordBreakdown: null,
+      mnemonicPhrase: null,
+      coreDefinition: preview || title,
+      exampleSentences: null,
+      memoryScene: richContent,
+      imagePrompt: null,
+      imageUrl: normalizedImageDataUrl,
+      imageStatus: ImageStatus.COMPLETED,
+      explanationStatus: ExplanationStatus.COMPLETED,
+    });
+    const savedExplanation = await this.wordExplanationRepository.save(explanation);
+
+    await this.reviewService.createSchedules(savedWord.id, userId);
+
     savedWord.explanation = savedExplanation;
     return savedWord;
   }
@@ -176,5 +211,24 @@ export class WordsService {
     await this.wordRepository.remove(word);
 
     this.logger.log(`Word ${id} deleted by user ${userId}`);
+  }
+
+  private getPreviewText(content: string, limit: number): string {
+    const stripped = content
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/[*_~`>#-]/g, ' ')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!stripped) {
+      return '';
+    }
+
+    if (stripped.length <= limit) {
+      return stripped;
+    }
+
+    return `${stripped.slice(0, limit).trim()}...`;
   }
 }

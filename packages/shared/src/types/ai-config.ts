@@ -6,7 +6,7 @@ export type AIProvider = 'openai' | 'claude' | 'zhipu' | 'doubao' | 'custom';
 
 export type AIPurpose = 'text' | 'image';
 
-export type ResponseFormat = 'openai' | 'openai-stream' | 'claude' | 'gemini' | 'dall-e';
+export type ResponseFormat = 'openai' | 'openai-stream' | 'claude' | 'gemini' | 'dall-e' | 'doubao';
 
 export interface AIConfiguration {
   id: string;
@@ -58,4 +58,19 @@ export interface WordExplanationResult {
 
 export interface ImageGenerationResult {
   imageUrl: string;
+}
+
+// ==========================================
+// User Settings Types
+// ==========================================
+
+export const DEFAULT_IMAGE_PROMPT_TEMPLATE =
+  'Create a vivid, colorful illustration in a whimsical cartoon style that depicts the following scene related to the English word.';
+
+export interface UserSettings {
+  imagePromptTemplate: string;
+}
+
+export interface UpdateUserSettingsDto {
+  imagePromptTemplate?: string;
 }

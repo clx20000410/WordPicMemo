@@ -8,6 +8,7 @@ import { ClaudeTextAdapter } from './adapters/claude-text.adapter';
 import { ZhipuTextAdapter } from './adapters/zhipu-text.adapter';
 import { GeminiTextAdapter } from './adapters/gemini-text.adapter';
 import { CustomAdapter } from './adapters/custom.adapter';
+import { DoubaoImageAdapter } from './adapters/doubao-image.adapter';
 
 export interface AdapterConfig {
   provider: string;
@@ -77,6 +78,12 @@ export class AIAdapterFactory {
       case 'dall-e':
       case 'openai':
         return new OpenAIImageAdapter(
+          config.apiKey,
+          config.apiEndpoint,
+          config.modelName,
+        );
+      case 'doubao':
+        return new DoubaoImageAdapter(
           config.apiKey,
           config.apiEndpoint,
           config.modelName,

@@ -21,4 +21,8 @@ export const aiConfigService = {
     const { data } = await apiClient.post(`/ai-configs/${id}/test`);
     return data;
   },
+
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/ai-configs/${id}`);
+  },
 };

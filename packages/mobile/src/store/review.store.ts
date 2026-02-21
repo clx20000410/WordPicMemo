@@ -1,17 +1,20 @@
 import { create } from 'zustand';
-import { DueReviewItem, ReviewSummary } from '@wordpicmemo/shared';
+import { DueReviewItem, ReviewSummary, ReviewListStatus } from '@wordpicmemo/shared';
 import { reviewService, notificationService } from '../services';
 
 interface ReviewState {
   dueReviews: DueReviewItem[];
+  reviewedReviews: DueReviewItem[];
   summary: ReviewSummary | null;
   currentReviewIndex: number;
   isLoading: boolean;
   error: string | null;
 
   fetchDueReviews: () => Promise<void>;
+  fetchReviewSchedules: (status: ReviewListStatus, date?: string) => Promise<DueReviewItem[]>;
   fetchSummary: () => Promise<void>;
   completeReview: (reviewId: string, remembered: boolean, confidence: number) => Promise<void>;
+  markReviewViewed: (reviewId: string) => Promise<void>;
   nextReview: () => void;
   resetReviewSession: () => void;
   clearError: () => void;
@@ -19,18 +22,29 @@ interface ReviewState {
 
 export const useReviewStore = create<ReviewState>((set, get) => ({
   dueReviews: [],
+  reviewedReviews: [],
   summary: null,
   currentReviewIndex: 0,
   isLoading: false,
   error: null,
 
   fetchDueReviews: async () => {
+    await get().fetchReviewSchedules('unreviewed');
+  },
+
+  fetchReviewSchedules: async (status, date) => {
     set({ isLoading: true, error: null });
     try {
-      const reviews = await reviewService.getDueReviews();
-      set({ dueReviews: reviews, currentReviewIndex: 0, isLoading: false });
+      const reviews = await reviewService.getReviewSchedules(status, date);
+      if (status === 'reviewed') {
+        set({ reviewedReviews: reviews, isLoading: false });
+      } else {
+        set({ dueReviews: reviews, currentReviewIndex: 0, isLoading: false });
+      }
+      return reviews;
     } catch (error: any) {
       set({ error: error.response?.data?.message || 'Failed to fetch reviews', isLoading: false });
+      return [];
     }
   },
 
@@ -48,8 +62,24 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       await reviewService.completeReview(reviewId, { remembered, confidence });
       // Find the completed review before removing it from state
       const completedReview = get().dueReviews.find((r) => r.review.id === reviewId);
+      const completedAt = new Date();
       set((state) => ({
         dueReviews: state.dueReviews.filter((r) => r.review.id !== reviewId),
+        reviewedReviews: completedReview
+          ? [
+              {
+                ...completedReview,
+                review: {
+                  ...completedReview.review,
+                  status: 'completed',
+                  completedAt,
+                  remembered,
+                  confidence,
+                },
+              },
+              ...state.reviewedReviews,
+            ]
+          : state.reviewedReviews,
         summary: state.summary
           ? {
               ...state.summary,
@@ -68,6 +98,10 @@ export const useReviewStore = create<ReviewState>((set, get) => ({
       set({ error: error.response?.data?.message || 'Failed to complete review' });
       throw error;
     }
+  },
+
+  markReviewViewed: async (reviewId) => {
+    await get().completeReview(reviewId, true, 3);
   },
 
   nextReview: () => {

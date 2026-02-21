@@ -22,10 +22,10 @@ export class CreateAIConfigDto {
   @ApiProperty({
     example: 'openai',
     description: 'Response format type for parsing API responses',
-    enum: ['openai', 'openai-stream', 'claude', 'gemini', 'dall-e'],
+    enum: ['openai', 'openai-stream', 'claude', 'gemini', 'dall-e', 'doubao'],
   })
-  @IsIn(['openai', 'openai-stream', 'claude', 'gemini', 'dall-e'])
-  responseFormat: 'openai' | 'openai-stream' | 'claude' | 'gemini' | 'dall-e';
+  @IsIn(['openai', 'openai-stream', 'claude', 'gemini', 'dall-e', 'doubao'])
+  responseFormat: 'openai' | 'openai-stream' | 'claude' | 'gemini' | 'dall-e' | 'doubao';
 
   @ApiProperty({
     example: 'https://api.openai.com/v1',

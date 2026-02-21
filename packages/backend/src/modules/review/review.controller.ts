@@ -4,12 +4,14 @@ import {
   Post,
   Param,
   Body,
+  Query,
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { ReviewService } from './review.service';
 import { CompleteReviewDto } from './dto/complete-review.dto';
+import { ReviewQueryDto } from './dto/review-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   CurrentUser,
@@ -35,6 +37,16 @@ export class ReviewController {
   @ApiResponse({ status: 200, description: "Today's review summary" })
   async getTodaySummary(@CurrentUser() user: CurrentUserPayload) {
     return this.reviewService.getTodaySummary(user.userId);
+  }
+
+  @Get('schedules')
+  @ApiOperation({ summary: 'Get review schedules by tab status and optional date' })
+  @ApiResponse({ status: 200, description: 'Review schedules with word explanation data' })
+  async getReviewSchedules(
+    @CurrentUser() user: CurrentUserPayload,
+    @Query() query: ReviewQueryDto,
+  ) {
+    return this.reviewService.getReviewSchedules(user.userId, query);
   }
 
   @Get('pending-schedules')

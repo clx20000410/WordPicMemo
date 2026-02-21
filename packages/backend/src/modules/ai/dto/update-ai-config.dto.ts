@@ -30,10 +30,10 @@ export class UpdateAIConfigDto {
   @ApiPropertyOptional({
     example: 'openai',
     description: 'Response format type for parsing API responses',
-    enum: ['openai', 'openai-stream', 'claude', 'gemini', 'dall-e'],
+    enum: ['openai', 'openai-stream', 'claude', 'gemini', 'dall-e', 'doubao'],
   })
   @IsOptional()
-  @IsIn(['openai', 'openai-stream', 'claude', 'gemini', 'dall-e'])
+  @IsIn(['openai', 'openai-stream', 'claude', 'gemini', 'dall-e', 'doubao'])
   responseFormat?: string;
 
   @ApiPropertyOptional({

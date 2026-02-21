@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { useAuthStore } from '../../store';
+import { useTranslation } from 'react-i18next';
 
 export default function RegisterScreen({ navigation }: any) {
   const [email, setEmail] = useState('');
@@ -9,6 +10,7 @@ export default function RegisterScreen({ navigation }: any) {
   const [nickname, setNickname] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { register, isLoading, error, clearError } = useAuthStore();
+  const { t } = useTranslation();
 
   const handleRegister = async () => {
     try {
@@ -23,11 +25,11 @@ export default function RegisterScreen({ navigation }: any) {
     >
       <ScrollView contentContainerStyle={styles.content}>
         <Text variant="headlineLarge" style={styles.title}>
-          Create Account
+          {t('auth.createAccount')}
         </Text>
 
         <TextInput
-          label="Nickname"
+          label={t('auth.nickname')}
           value={nickname}
           onChangeText={(text) => { setNickname(text); clearError(); }}
           mode="outlined"
@@ -35,7 +37,7 @@ export default function RegisterScreen({ navigation }: any) {
         />
 
         <TextInput
-          label="Email"
+          label={t('auth.email')}
           value={email}
           onChangeText={(text) => { setEmail(text); clearError(); }}
           mode="outlined"
@@ -45,7 +47,7 @@ export default function RegisterScreen({ navigation }: any) {
         />
 
         <TextInput
-          label="Password"
+          label={t('auth.password')}
           value={password}
           onChangeText={(text) => { setPassword(text); clearError(); }}
           mode="outlined"
@@ -63,7 +65,7 @@ export default function RegisterScreen({ navigation }: any) {
           disabled={isLoading || !email || !password || !nickname}
           style={styles.button}
         >
-          Register
+          {t('auth.register')}
         </Button>
 
         <Button
@@ -71,7 +73,7 @@ export default function RegisterScreen({ navigation }: any) {
           onPress={() => navigation.goBack()}
           style={styles.link}
         >
-          Already have an account? Login
+          {t('auth.hasAccount')}
         </Button>
       </ScrollView>
     </KeyboardAvoidingView>

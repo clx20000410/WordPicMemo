@@ -6,12 +6,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, Between } from 'typeorm';
+import { Repository, Between, Brackets } from 'typeorm';
 import { ReviewSchedule, ReviewStatus } from './review-schedule.entity';
 import { Word } from '../words/word.entity';
 import { WordExplanation } from '../words/word-explanation.entity';
 import { calculateReviewSchedules } from '@wordpicmemo/shared';
 import { CompleteReviewDto } from './dto/complete-review.dto';
+import { ReviewQueryDto } from './dto/review-query.dto';
 
 @Injectable()
 export class ReviewService {
@@ -54,22 +55,105 @@ export class ReviewService {
    * Get all due/overdue reviews for a user, joined with word and explanation data.
    */
   async getDueReviews(userId: string): Promise<any[]> {
-    const reviews = await this.reviewScheduleRepository.find({
-      where: [
-        {
-          userId,
-          status: ReviewStatus.DUE,
-        },
-        {
-          userId,
-          status: ReviewStatus.OVERDUE,
-        },
-      ],
-      relations: ['word', 'word.explanation'],
-      order: {
-        scheduledAt: 'ASC',
+    const now = new Date();
+    const reviews = await this.reviewScheduleRepository
+      .createQueryBuilder('review')
+      .leftJoinAndSelect('review.word', 'word')
+      .leftJoinAndSelect('word.explanation', 'explanation')
+      .where('review.userId = :userId', { userId })
+      .andWhere(
+        new Brackets((subQb) => {
+          subQb
+            .where('review.status IN (:...dueLike)', {
+              dueLike: [ReviewStatus.DUE, ReviewStatus.OVERDUE],
+            })
+            .orWhere('(review.status = :pending AND review.scheduledAt <= :now)', {
+              pending: ReviewStatus.PENDING,
+              now,
+            });
+        }),
+      )
+      .orderBy('review.scheduledAt', 'ASC')
+      .getMany();
+
+    return reviews.map((review) => ({
+      review: {
+        id: review.id,
+        wordId: review.wordId,
+        userId: review.userId,
+        stage: review.stage,
+        scheduledAt: review.scheduledAt,
+        completedAt: review.completedAt,
+        status: review.status,
+        remembered: review.remembered,
+        confidence: review.confidence,
+        createdAt: review.createdAt,
+        updatedAt: review.updatedAt,
       },
-    });
+      word: review.word
+        ? {
+            id: review.word.id,
+            word: review.word.word,
+            language: review.word.language,
+          }
+        : null,
+      explanation: review.word?.explanation
+        ? {
+            pronunciation: review.word.explanation.pronunciation,
+            coreDefinition: review.word.explanation.coreDefinition,
+            mnemonicPhrase: review.word.explanation.mnemonicPhrase,
+            memoryScene: review.word.explanation.memoryScene,
+            imageUrl: review.word.explanation.imageUrl,
+          }
+        : null,
+    }));
+  }
+
+  /**
+   * Get review schedules for "unreviewed" (due/overdue + time-reached pending)
+   * or "reviewed" (completed),
+   * optionally filtered by scheduled date.
+   */
+  async getReviewSchedules(
+    userId: string,
+    query: ReviewQueryDto,
+  ): Promise<any[]> {
+    const status = query.status || 'unreviewed';
+    const qb = this.reviewScheduleRepository
+      .createQueryBuilder('review')
+      .leftJoinAndSelect('review.word', 'word')
+      .leftJoinAndSelect('word.explanation', 'explanation')
+      .where('review.userId = :userId', { userId });
+
+    if (status === 'reviewed') {
+      qb.andWhere('review.status = :completed', { completed: ReviewStatus.COMPLETED });
+      qb.orderBy('review.completedAt', 'DESC', 'NULLS LAST');
+    } else {
+      const now = new Date();
+      qb.andWhere(
+        new Brackets((subQb) => {
+          subQb
+            .where('review.status IN (:...dueLike)', {
+              dueLike: [ReviewStatus.DUE, ReviewStatus.OVERDUE],
+            })
+            .orWhere('(review.status = :pending AND review.scheduledAt <= :now)', {
+              pending: ReviewStatus.PENDING,
+              now,
+            });
+        }),
+      );
+      qb.orderBy('review.scheduledAt', 'ASC');
+    }
+
+    if (query.date) {
+      const start = new Date(query.date);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(query.date);
+      end.setHours(23, 59, 59, 999);
+      qb.andWhere('review.scheduledAt BETWEEN :start AND :end', { start, end });
+    }
+
+    const reviews = await qb.getMany();
 
     return reviews.map((review) => ({
       review: {
@@ -121,13 +205,21 @@ export class ReviewService {
     const endOfToday = new Date(now);
     endOfToday.setHours(23, 59, 59, 999);
 
-    // Count reviews with status 'due' for user
-    const totalDue = await this.reviewScheduleRepository.count({
-      where: {
-        userId,
-        status: ReviewStatus.DUE,
-      },
-    });
+    // Count reviews that should be considered "due now" (includes reached pending)
+    const totalDue = await this.reviewScheduleRepository
+      .createQueryBuilder('review')
+      .where('review.userId = :userId', { userId })
+      .andWhere(
+        new Brackets((subQb) => {
+          subQb
+            .where('review.status = :due', { due: ReviewStatus.DUE })
+            .orWhere('(review.status = :pending AND review.scheduledAt <= :now)', {
+              pending: ReviewStatus.PENDING,
+              now,
+            });
+        }),
+      )
+      .getCount();
 
     // Count reviews completed today
     const completedToday = await this.reviewScheduleRepository.count({
@@ -183,12 +275,18 @@ export class ReviewService {
       throw new ForbiddenException('You do not have access to this review');
     }
 
+    const now = new Date();
+    const pendingReachedReviewTime =
+      review.status === ReviewStatus.PENDING && review.scheduledAt <= now;
+
     if (
       review.status !== ReviewStatus.DUE &&
-      review.status !== ReviewStatus.OVERDUE
+      review.status !== ReviewStatus.OVERDUE &&
+      !pendingReachedReviewTime
     ) {
       throw new BadRequestException(
-        `Cannot complete a review with status '${review.status}'. Only 'due' or 'overdue' reviews can be completed.`,
+        `Cannot complete a review with status '${review.status}'. ` +
+          `Only 'due', 'overdue', or time-reached 'pending' reviews can be completed.`,
       );
     }
 
@@ -207,7 +305,14 @@ export class ReviewService {
   async getPendingSchedules(
     userId: string,
   ): Promise<
-    { id: string; wordId: string; stage: number; scheduledAt: Date; status: string }[]
+    {
+      id: string;
+      wordId: string;
+      stage: number;
+      scheduledAt: Date;
+      status: string;
+      word: string | null;
+    }[]
   > {
     const reviews = await this.reviewScheduleRepository.find({
       where: [
@@ -215,6 +320,7 @@ export class ReviewService {
         { userId, status: ReviewStatus.DUE },
         { userId, status: ReviewStatus.OVERDUE },
       ],
+      relations: ['word'],
       order: { scheduledAt: 'ASC' },
     });
 
@@ -224,6 +330,7 @@ export class ReviewService {
       stage: r.stage,
       scheduledAt: r.scheduledAt,
       status: r.status,
+      word: r.word?.word ?? null,
     }));
   }
 

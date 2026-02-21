@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, StyleSheet, FlatList, Alert, Platform } from 'react-native';
-import { Searchbar, Card, Text, ActivityIndicator, IconButton, Chip } from 'react-native-paper';
+import { Searchbar, Card, Text, ActivityIndicator, IconButton, Chip, SegmentedButtons } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 import { useWordStore } from '../../store';
 
 function formatDate(date: Date): string {
@@ -11,11 +12,14 @@ function formatDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
-function formatDisplayDate(date: Date): string {
-  return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+function formatDisplayDate(date: Date, locale: string): string {
+  const loc = locale === 'zh' ? 'zh-CN' : 'en-US';
+  return date.toLocaleDateString(loc, { month: 'short', day: 'numeric' });
 }
 
 export default function WordListScreen({ navigation }: any) {
+  const { t, i18n } = useTranslation();
+  const [activeTab, setActiveTab] = useState('word');
   const [search, setSearch] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -23,9 +27,18 @@ export default function WordListScreen({ navigation }: any) {
 
   const dateStr = selectedDate ? formatDate(selectedDate) : undefined;
 
+  // Filter words based on active tab
+  const filteredWords = useMemo(() => {
+    if (activeTab === 'word') {
+      return words.filter((word) => word.language !== 'note');
+    } else {
+      return words.filter((word) => word.language === 'note');
+    }
+  }, [words, activeTab]);
+
   useEffect(() => {
     fetchWords(1, search || undefined, dateStr);
-  }, [search, dateStr]);
+  }, [search, dateStr, fetchWords]);
 
   const loadMore = useCallback(() => {
     if (!isLoading && page < totalPages) {
@@ -46,12 +59,12 @@ export default function WordListScreen({ navigation }: any) {
 
   const handleDelete = (wordId: string, wordText: string) => {
     Alert.alert(
-      '确认删除',
-      `确定要删除单词 "${wordText}" 吗？此操作不可撤销。`,
+      t('words.confirmDelete'),
+      t('words.confirmDeleteMessage', { word: wordText }),
       [
-        { text: '取消', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: '删除',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             deleteWord(wordId).catch(() => {});
@@ -63,10 +76,23 @@ export default function WordListScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
+      {/* Tab Switcher */}
+      <View style={styles.tabContainer}>
+        <SegmentedButtons
+          value={activeTab}
+          onValueChange={setActiveTab}
+          buttons={[
+            { value: 'word', label: t('home.wordTab') },
+            { value: 'note', label: t('home.noteTab') },
+          ]}
+          style={styles.segmentedButtons}
+        />
+      </View>
+
       {/* Search + Date Filter Row */}
       <View style={styles.filterRow}>
         <Searchbar
-          placeholder="Search words..."
+          placeholder={t('words.searchPlaceholder')}
           value={search}
           onChangeText={setSearch}
           style={styles.searchbar}
@@ -88,7 +114,7 @@ export default function WordListScreen({ navigation }: any) {
             onClose={clearDateFilter}
             style={styles.dateChip}
           >
-            {formatDisplayDate(selectedDate)}
+            {formatDisplayDate(selectedDate, i18n.language)}
           </Chip>
         </View>
       )}
@@ -104,7 +130,7 @@ export default function WordListScreen({ navigation }: any) {
       )}
 
       <FlatList
-        data={words}
+        data={filteredWords}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <Card
@@ -140,7 +166,11 @@ export default function WordListScreen({ navigation }: any) {
         onEndReachedThreshold={0.5}
         ListFooterComponent={isLoading ? <ActivityIndicator style={styles.footer} /> : null}
         ListEmptyComponent={
-          !isLoading ? <Text style={styles.empty}>No words found</Text> : null
+          !isLoading ? (
+            <Text style={styles.empty}>
+              {activeTab === 'word' ? t('home.noWord') : t('home.noNote')}
+            </Text>
+          ) : null
         }
       />
     </View>
@@ -149,7 +179,9 @@ export default function WordListScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAFBFF' },
-  filterRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginTop: 16 },
+  tabContainer: { padding: 16, paddingBottom: 8 },
+  segmentedButtons: { alignSelf: 'center' },
+  filterRow: { flexDirection: 'row', alignItems: 'center', marginHorizontal: 16 },
   searchbar: { flex: 1, backgroundColor: '#FFFFFF' },
   calendarButton: { marginLeft: 4 },
   dateChipRow: { flexDirection: 'row', paddingHorizontal: 16, marginTop: 8 },

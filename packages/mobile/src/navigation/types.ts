@@ -1,3 +1,5 @@
+import { ReviewListStatus } from '@wordpicmemo/shared';
+
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
@@ -6,6 +8,7 @@ export type RootStackParamList = {
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  Settings: undefined;
 };
 
 export type MainTabParamList = {
@@ -21,6 +24,12 @@ export type HomeStackParamList = {
 };
 
 export type ReviewStackParamList = {
-  ReviewList: undefined;
-  FlashcardReview: undefined;
+  ReviewList: { initialTab?: ReviewListStatus } | undefined;
+  FlashcardReview:
+    | {
+        reviewId?: string;
+        wordId?: string;
+        stage?: number;
+      }
+    | undefined;
 };

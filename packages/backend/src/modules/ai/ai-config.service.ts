@@ -190,6 +190,20 @@ export class AIConfigService {
     }
   }
 
+  async deleteConfig(id: string, userId: string): Promise<void> {
+    const config = await this.aiConfigRepo.findOne({
+      where: { id, userId },
+    });
+
+    if (!config) {
+      throw new NotFoundException(
+        `AI configuration with id ${id} not found`,
+      );
+    }
+
+    await this.aiConfigRepo.remove(config);
+  }
+
   encryptApiKey(key: string): string {
     const secret = this.getEncryptionSecret();
     const iv = crypto.randomBytes(16);
