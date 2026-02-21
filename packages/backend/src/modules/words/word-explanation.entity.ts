@@ -63,7 +63,7 @@ export class WordExplanation {
   @Column({ name: 'image_prompt', type: 'text', nullable: true })
   imagePrompt: string | null;
 
-  @Column({ name: 'image_url', type: 'varchar', nullable: true })
+  @Column({ name: 'image_url', type: 'text', nullable: true })
   imageUrl: string | null;
 
   @Column({

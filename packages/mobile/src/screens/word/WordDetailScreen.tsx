@@ -112,34 +112,27 @@ export default function WordDetailScreen({ route }: any) {
       <ScrollView style={styles.container}>
         <Card style={styles.headerCard}>
           <Card.Content>
-            <Text variant="headlineMedium" style={styles.word}>{currentWord.word}</Text>
             <Chip compact style={styles.langChip}>{t('home.noteType')}</Chip>
           </Card.Content>
         </Card>
 
         <Card style={styles.card}>
           <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>{t('home.noteContentLabel')}</Text>
             <Text variant="bodyLarge" style={styles.noteContentText}>
               {noteText}
             </Text>
           </Card.Content>
         </Card>
 
-        <Card style={styles.card}>
-          <Card.Content>
-            <Text variant="titleMedium" style={styles.sectionTitle}>{t('wordDetail.memoryImage')}</Text>
-            {exp?.imageUrl ? (
+        {exp?.imageUrl ? (
+          <Card style={styles.card}>
+            <Card.Content>
               <View style={[styles.memoryImageContainer, { aspectRatio: memoryImageRatio }]}>
                 <Image source={{ uri: exp.imageUrl }} style={styles.memoryImage} resizeMode="cover" />
               </View>
-            ) : (
-              <View style={styles.imagePlaceholder}>
-                <Text>{t('review.noImage')}</Text>
-              </View>
-            )}
-          </Card.Content>
-        </Card>
+            </Card.Content>
+          </Card>
+        ) : null}
       </ScrollView>
     );
   }

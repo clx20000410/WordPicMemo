@@ -52,7 +52,6 @@ export interface CreateWordDto {
 }
 
 export interface CreateNoteDto {
-  title: string;
   content: string;
   imageDataUrl?: string;
 }

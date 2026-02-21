@@ -62,14 +62,13 @@ export class WordsService {
   }
 
   async createNote(userId: string, dto: CreateNoteDto): Promise<Word> {
-    const title = dto.title.trim();
-    const richContent = dto.content.trim();
-    const preview = this.getPreviewText(richContent, 220);
+    const content = dto.content.trim();
+    const preview = this.getPreviewText(content, 220);
     const normalizedImageDataUrl = dto.imageDataUrl?.trim() || null;
 
     const noteWord = this.wordRepository.create({
       userId,
-      word: title,
+      word: preview || '内容记忆',
       language: 'note',
     });
     const savedWord = await this.wordRepository.save(noteWord);
@@ -79,9 +78,9 @@ export class WordsService {
       pronunciation: null,
       wordBreakdown: null,
       mnemonicPhrase: null,
-      coreDefinition: preview || title,
+      coreDefinition: preview,
       exampleSentences: null,
-      memoryScene: richContent,
+      memoryScene: content,
       imagePrompt: null,
       imageUrl: normalizedImageDataUrl,
       imageStatus: ImageStatus.COMPLETED,
@@ -114,9 +113,12 @@ export class WordsService {
       .leftJoinAndSelect('word.explanation', 'explanation')
       .where('word.userId = :userId', { userId });
 
-    // Optional search filter
+    // Optional search filter: search in word name, core definition, and memory scene
     if (query.search) {
-      qb.andWhere('word.word ILIKE :search', { search: `%${query.search}%` });
+      qb.andWhere(
+        '(word.word ILIKE :search OR explanation.coreDefinition ILIKE :search OR explanation.memoryScene ILIKE :search)',
+        { search: `%${query.search}%` },
+      );
     }
 
     // Optional language filter

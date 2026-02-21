@@ -15,7 +15,7 @@ interface WordState {
   fetchWords: (page?: number, search?: string, date?: string) => Promise<void>;
   fetchWordById: (id: string) => Promise<void>;
   createWord: (word: string, language?: string) => Promise<Word>;
-  createNote: (title: string, content: string, imageDataUrl?: string) => Promise<Word>;
+  createNote: (content: string, imageDataUrl?: string) => Promise<Word>;
   deleteWord: (id: string) => Promise<void>;
   regenerateExplanation: (id: string) => Promise<void>;
   regenerateImage: (id: string) => Promise<void>;
@@ -81,10 +81,10 @@ export const useWordStore = create<WordState>((set, get) => ({
     }
   },
 
-  createNote: async (title, content, imageDataUrl) => {
+  createNote: async (content, imageDataUrl) => {
     set({ isCreating: true, error: null });
     try {
-      const newNote = await wordService.createNote({ title, content, imageDataUrl });
+      const newNote = await wordService.createNote({ content, imageDataUrl });
       set((state) => ({
         words: [newNote, ...state.words],
         total: state.total + 1,

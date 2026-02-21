@@ -9,7 +9,6 @@ export default function HomeScreen({ navigation }: any) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('word');
   const [newWord, setNewWord] = useState('');
-  const [noteTitle, setNoteTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [noteImageDataUrl, setNoteImageDataUrl] = useState<string | null>(null);
   const [noteImagePreviewUri, setNoteImagePreviewUri] = useState<string | null>(null);
@@ -44,7 +43,7 @@ export default function HomeScreen({ navigation }: any) {
       includeBase64: true,
       maxHeight: 1600,
       maxWidth: 1600,
-      quality: 0.8,
+      quality: 0.7,
       selectionLimit: 1,
     });
 
@@ -75,18 +74,16 @@ export default function HomeScreen({ navigation }: any) {
   }, [t]);
 
   const handleCreateNote = useCallback(async () => {
-    if (!noteTitle.trim() || !noteContent.trim()) {
+    if (!noteContent.trim() && !noteImageDataUrl) {
       Alert.alert(t('common.error'), t('home.noteValidation'));
       return;
     }
 
     try {
       const note = await createNote(
-        noteTitle.trim(),
-        noteContent.trim(),
+        noteContent.trim() || '图片记忆',
         noteImageDataUrl || undefined,
       );
-      setNoteTitle('');
       setNoteContent('');
       setNoteImageDataUrl(null);
       setNoteImagePreviewUri(null);
@@ -94,16 +91,7 @@ export default function HomeScreen({ navigation }: any) {
     } catch (e: any) {
       Alert.alert(t('common.error'), e?.message || 'Failed to create note');
     }
-  }, [noteTitle, noteContent, noteImageDataUrl, createNote, navigation, t]);
-
-  const insertRichSnippet = useCallback((snippet: string) => {
-    setNoteContent((prev) => {
-      if (!prev.trim()) {
-        return snippet;
-      }
-      return `${prev}\n${snippet}`;
-    });
-  }, []);
+  }, [noteContent, noteImageDataUrl, createNote, navigation, t]);
 
   return (
     <KeyboardAvoidingView
@@ -149,42 +137,17 @@ export default function HomeScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* Note Content Tab */}
+        {/* Note Content Tab - Simplified */}
         {activeTab === 'note' && (
           <Card style={styles.noteCard}>
             <Card.Content>
-              <Text variant="titleMedium" style={styles.noteTitle}>
-                {t('home.noteSectionTitle')}
-              </Text>
-              <TextInput
-                label={t('home.noteTitleLabel')}
-                value={noteTitle}
-                onChangeText={setNoteTitle}
-                mode="outlined"
-                style={styles.noteInput}
-                maxLength={100}
-              />
-              <View style={styles.toolbarRow}>
-                <Button compact mode="outlined" onPress={() => insertRichSnippet('## 标题')}>
-                  H2
-                </Button>
-                <Button compact mode="outlined" onPress={() => insertRichSnippet('**加粗内容**')}>
-                  B
-                </Button>
-                <Button compact mode="outlined" onPress={() => insertRichSnippet('*斜体内容*')}>
-                  I
-                </Button>
-                <Button compact mode="outlined" onPress={() => insertRichSnippet('- 列表项')}>
-                  •
-                </Button>
-              </View>
               <TextInput
                 label={t('home.noteContentLabel')}
                 value={noteContent}
                 onChangeText={setNoteContent}
                 mode="outlined"
                 multiline
-                numberOfLines={8}
+                numberOfLines={6}
                 style={styles.noteContentInput}
                 placeholder={t('home.noteContentHint')}
               />
@@ -218,7 +181,7 @@ export default function HomeScreen({ navigation }: any) {
                 style={styles.saveNoteButton}
                 onPress={handleCreateNote}
                 loading={isCreating}
-                disabled={isCreating || !noteTitle.trim() || !noteContent.trim()}
+                disabled={isCreating || (!noteContent.trim() && !noteImageDataUrl)}
               >
                 {t('home.saveNote')}
               </Button>
@@ -254,10 +217,7 @@ const styles = StyleSheet.create({
   loader: { marginTop: 8 },
   errorText: { color: '#DC3545', marginTop: 8, fontSize: 13, padding: 8, backgroundColor: '#FFF0F0', borderRadius: 6 },
   noteCard: { marginHorizontal: 16, marginBottom: 16, backgroundColor: '#FFFFFF' },
-  noteTitle: { marginBottom: 10 },
-  noteInput: { marginBottom: 10, backgroundColor: '#FFFFFF' },
   noteContentInput: { backgroundColor: '#FFFFFF' },
-  toolbarRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   noteActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
   noteImagePreview: {
     width: '100%',
